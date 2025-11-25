@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="{{ 'dark' if session.get('dark_mode') else 'light' }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Herbs & Spices Store{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Dark Mode CSS Variables */
+        :root {
+            --primary-color: #4CAF50;
+            --primary-dark: #388E3C;
+            --primary-light: #C8E6C9;
+            --background-color: #ffffff;
+            --surface-color: #f8f9fa;
+            --text-primary: #212529;
+            --text-secondary: #6c757d;
+            --border-color: #dee2e6;
+            --card-bg: #ffffff;
+            --nav-bg: #2E7D32;
+            --footer-bg: #1b5e20;
+            --footer-text: #e8f5e9;
+            --sidebar-width: 250px;
+        }
+
+        [data-theme="dark"] {
+            --primary-color: #66BB6A;
+            --primary-dark: #4CAF50;
+            --primary-light: #1B5E20;
+            --background-color: #121212;
+            --surface-color: #1e1e1e;
+            --text-primary: #e9ecef;
+            --text-secondary: #adb5bd;
+            --border-color: #444;
+            --card-bg: #1e1e1e;
+            --nav-bg: #1b5e20;
+            --footer-bg: #0d3110;
+            --footer-text: #e8f5e9;
+        }
+
+        /* Background Image Styles */
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            position: relative;
+        }
+
+        .background-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -2;
+        }
+
+        .background-image {
+            width: 100%;
+            height: 100%;
+            background-image: url("{{ url_for('static', filename='images/background.jpg') }}");
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+        }
+
+        .background-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.3);
+            z-index: -1;
+        }
+
+        [data-theme="dark"] .background-overlay {
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .main-content-area {
+            position: relative;
+            z-index: 1;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Layout Structure */
+        .app-container {
+            display: flex;
+            flex: 1;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--surface-color);
+            border-right: 1px solid var(--border-color);
+            padding: 20px 0;
+            position: fixed;
+            left: 0;
+            top: 70px;
+            bottom: 0;
+            overflow-y: auto;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-hidden {
+            transform: translateX(-100%);
+        }
+
+        .sidebar-toggle {
+            position: fixed;
+            left: 10px;
+            top: 80px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            z-index: 1001;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-toggle:hover {
+            background: var(--primary-dark);
+        }
+
+        .sidebar-section {
+            padding: 0 20px;
+            margin-bottom: 25px;
+        }
+
+        .sidebar-section h3 {
+            color: var(--primary-color);
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+            border-bottom: 2px solid var(--primary-light);
+            padding-bottom: 5px;
+        }
+
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            padding: 10px 15px;
+            color: var(--text-primary);
+            text-decoration: none;
+            border-radius: 5px;
+            margin-bottom: 5px;
+            transition: all 0.3s ease;
+            background: var(--card-bg);
+        }
+
+        .sidebar-link:hover {
+            background-color: var(--primary-light);
+            color: var(--text-primary);
+            transform: translateX(5px);
+        }
+
+        .sidebar-link i {
+            margin-right: 10px;
+            width: 20px;
+            text-align: center;
+        }
+
+        .sidebar-link.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        /* Main Content Area */
+        .main-content-wrapper {
+            flex: 1;
+            margin-left: var(--sidebar-width);
+            transition: margin-left 0.3s ease;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            min-height: calc(100vh - 70px);
+        }
+
+        .main-content-wrapper.full-width {
+            margin-left: 0;
+        }
+
+        .main-content {
+            flex: 1;
+        }
+
+        /* Cards and content */
+        .card, .product-card, .alert, .form-control, .form-select {
+            background-color: rgba(255, 255, 255, 0.9);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        [data-theme="dark"] .card,
+        [data-theme="dark"] .product-card,
+        [data-theme="dark"] .alert,
+        [data-theme="dark"] .form-control,
+        [data-theme="dark"] .form-select {
+            background-color: rgba(30, 30, 30, 0.9);
+        }
+
+        /* Products Grid */
+        .products-grid {
+            display: grid !important;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 25px;
+            padding: 20px 0;
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+
+        .product-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            border: 1px solid var(--border-color);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            height: 380px;
+            cursor: pointer;
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            border-color: var(--primary-color);
+        }
+
+        .product-image {
+            position: relative;
+            height: 200px;
+            overflow: hidden;
+            background: linear-gradient(135deg, var(--background-color), var(--surface-color));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .product-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            transition: transform 0.3s ease;
+        }
+
+        .product-card:hover .product-image img {
+            transform: scale(1.05);
+        }
+
+        .product-info {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            gap: 10px;
+        }
+
+        .product-info h3 {
+            font-size: 1.2rem;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+            line-height: 1.3;
+        }
+
+        .product-price {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 8px;
+        }
+
+        .product-description {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin-bottom: 12px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .product-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: auto;
+        }
+
+        .product-actions .btn {
+            flex: 1;
+            justify-content: center;
+            font-size: 0.9rem;
+            padding: 10px;
+        }
+
+        /* Navigation */
+        .navbar {
+            background-color: var(--nav-bg);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1100;
+            height: 70px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .nav-container {
+            max-width: 100%;
+        }
+
+        /* Footer Styles */
+        .footer {
+            background-color: var(--footer-bg);
+            color: var(--footer-text);
+            width: 100%;
+            margin-top: auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 25px 20px;
+        }
+
+        .footer-section {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .footer-section h3 {
+            color: var(--footer-text);
+            margin-bottom: 12px;
+            font-size: 1.1rem;
+        }
+
+        .footer-section h4 {
+            color: var(--footer-text);
+            margin-bottom: 10px;
+            font-size: 1rem;
+        }
+
+        .footer-section p {
+            color: var(--footer-text);
+            line-height: 1.5;
+            margin-bottom: 12px;
+            font-size: 0.9rem;
+        }
+
+        .footer-section a {
+            color: var(--footer-text);
+            text-decoration: none;
+            margin-bottom: 6px;
+            transition: color 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.9rem;
+        }
+
+        .footer-section a:hover {
+            color: var(--primary-light);
+        }
+
+        .footer-social {
+            display: flex;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .social-link {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 35px;
+            height: 35px;
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--footer-text);
+            border-radius: 50%;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .social-link:hover {
+            background: var(--primary-color);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .contact-info {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--footer-text);
+            font-size: 0.9rem;
+        }
+
+        .contact-item i {
+            width: 16px;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .footer-bottom {
+            text-align: center;
+            padding: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--footer-text);
+            font-size: 0.85rem;
+        }
+
+        /* Dark Mode Toggle Button */
+        .theme-toggle {
+            background: none;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+        }
+
+        .theme-toggle:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .theme-icon {
+            transition: transform 0.3s ease;
+        }
+
+        .theme-toggle:hover .theme-icon {
+            transform: rotate(180deg);
+        }
+
+        /* Mobile menu */
+        .mobile-menu {
+            background-color: var(--nav-bg);
+        }
+
+        .mobile-nav-link {
+            color: white;
+        }
+
+        /* Smooth transitions */
+        * {
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        }
+
+        /* Alert styles */
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border-color: #c3e6cb;
+        }
+
+        .alert-danger {
+            background-color: #f8d7da;
+            color: #721c24;
+            border-color: #f5c6cb;
+        }
+
+        .alert-warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border-color: #ffeaa7;
+        }
+
+        .alert-info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border-color: #bee5eb;
+        }
+
+        [data-theme="dark"] .alert-success {
+            background-color: rgba(21, 87, 36, 0.9);
+            color: #d4edda;
+        }
+
+        [data-theme="dark"] .alert-danger {
+            background-color: rgba(114, 28, 36, 0.9);
+            color: #f8d7da;
+        }
+
+        [data-theme="dark"] .alert-warning {
+            background-color: rgba(133, 100, 4, 0.9);
+            color: #fff3cd;
+        }
+
+        [data-theme="dark"] .alert-info {
+            background-color: rgba(12, 84, 96, 0.9);
+            color: #d1ecf1;
+        }
+
+        /* All Products Link Styling */
+        .sidebar-link.all-products {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            color: white;
+            font-weight: 600;
+            border: 2px solid var(--primary-color);
+        }
+
+        .sidebar-link.all-products:hover {
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary-color));
+            transform: translateX(5px);
+        }
+
+        /* Products Header */
+        .products-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px 0;
+        }
+
+        .products-header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .products-header p {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .sidebar.mobile-open {
+                transform: translateX(0);
+            }
+            
+            .main-content-wrapper {
+                margin-left: 0;
+                padding: 10px;
+                min-height: calc(100vh - 70px);
+            }
+            
+            .sidebar-toggle {
+                display: block;
+            }
+
+            .products-grid {
+                grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+                gap: 20px;
+                padding: 15px 0;
+            }
+
+            .product-card {
+                height: 350px;
+            }
+
+            .product-image {
+                height: 180px;
+            }
+
+            .footer-content {
+                grid-template-columns: 1fr;
+                gap: 15px;
+                padding: 20px 15px;
+            }
+
+            /* Adjust background for mobile */
+            .background-image {
+                background-attachment: scroll;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .products-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .product-card {
+                height: 320px;
+                max-width: 100%;
+                margin: 0 auto;
+            }
+
+            .product-image {
+                height: 160px;
+            }
+        }
+
+        @media (min-width: 769px) {
+            .sidebar-toggle {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Background Container -->
+    <div class="background-container">
+        <div class="background-image"></div>
+    </div>
+    <div class="background-overlay"></div>
+
+    <!-- Main Content Area -->
+    <div class="main-content-area">
+        <!-- Navigation -->
+        <nav class="navbar">
+            <div class="nav-container">
+                <div class="nav-logo">
+                    <a href="{{ url_for('index') }}">
+                        <i class="fas fa-leaf"></i>
+                        ALIMAQ
+                    </a>
+                </div>
+                
+                <div class="nav-search">
+                    <form action="{{ url_for('index') }}" method="GET" class="search-form">
+                        <input type="text" name="search" placeholder="Search products..." value="{{ request.args.get('search', '') }}">
+                        <button type="submit" title="Search" aria-label="Search">
+                            <i class="fas fa-search" aria-hidden="true"></i>
+                        </button>
+                    </form>
+                </div>
+                
+                <div class="nav-menu">
+                    <!-- Dark Mode Toggle -->
+                    <button class="theme-toggle" onclick="toggleDarkMode()" title="Toggle Dark Mode">
+                        <i class="fas theme-icon {{ 'fa-sun' if session.get('dark_mode') else 'fa-moon' }}"></i>
+                        <span class="theme-text">{{ 'Light' if session.get('dark_mode') else 'Dark' }}</span>
+                    </button>
+                    
+                    {% if current_user.is_authenticated %}
+                        <a href="{{ url_for('cart') }}" class="nav-link cart-link">
+                            <i class="fas fa-shopping-cart"></i> Cart
+                            <span class="cart-count" id="cartCount">
+                                {{ current_user.cart_items|length if current_user.cart_items else 0 }}
+                            </span>
+                        </a>
+                        
+                        <div class="nav-dropdown">
+                            <a href="#" class="nav-link">
+                                <i class="fas fa-user"></i> {{ current_user.name }}
+                            </a>
+                            <div class="dropdown-menu">
+                                <a href="{{ url_for('user_orders') }}" class="dropdown-item">
+                                    <i class="fas fa-shopping-bag"></i> My Orders
+                                </a>
+                                <a href="{{ url_for('logout') }}" class="dropdown-item">
+                                    <i class="fas fa-sign-out-alt"></i> Logout
+                                </a>
+                            </div>
+                        </div>
+                    {% else %}
+                        <a href="{{ url_for('login') }}" class="nav-link">
+                            <i class="fas fa-sign-in-alt"></i> Login
+                        </a>
+                        <a href="{{ url_for('register') }}" class="nav-link">
+                            <i class="fas fa-user-plus"></i> Register
+                        </a>
+                    {% endif %}
+                </div>
+
+                <!-- Mobile Navigation Toggle -->
+                <button class="mobile-nav-toggle" id="mobileNavToggle" title="Open mobile navigation menu" aria-label="Open mobile navigation menu">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Sidebar Toggle Button -->
+        <button class="sidebar-toggle" id="sidebarToggle" title="Toggle Sidebar">
+            <i class="fas fa-bars"></i>
+        </button>
+
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar" id="sidebar">
+            <!-- Menu Section -->
+            <div class="sidebar-section">
+                <h3><i class="fas fa-bars"></i> Menu</h3>
+                <a href="{{ url_for('index') }}" class="sidebar-link all-products active-category">
+                    <i class="fas fa-th-large"></i> All Products
+                </a>
+                <a href="{{ url_for('index') }}" class="sidebar-link">
+                    <i class="fas fa-home"></i> Home
+                </a>
+                {% if current_user.is_authenticated %}
+                    <a href="{{ url_for('sell') }}" class="sidebar-link">
+                        <i class="fas fa-store"></i> Sell Products
+                    </a>
+                    <a href="{{ url_for('my_products') }}" class="sidebar-link">
+                        <i class="fas fa-box"></i> My Products
+                    </a>
+                    {% if current_user.is_admin %}
+                    <a href="{{ url_for('admin_dashboard') }}" class="sidebar-link">
+                        <i class="fas fa-cog"></i> Admin Dashboard
+                    </a>
+                    {% endif %}
+                {% endif %}
+            </div>
+
+            <!-- User Section -->
+            {% if current_user.is_authenticated %}
+            <div class="sidebar-section">
+                <h3><i class="fas fa-user-circle"></i> My Account</h3>
+                <a href="{{ url_for('user_orders') }}" class="sidebar-link">
+                    <i class="fas fa-shopping-bag"></i> My Orders
+                </a>
+                <a href="{{ url_for('cart') }}" class="sidebar-link">
+                    <i class="fas fa-shopping-cart"></i> Shopping Cart
+                </a>
+                <a href="{{ url_for('logout') }}" class="sidebar-link">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </div>
+            {% else %}
+            <div class="sidebar-section">
+                <h3><i class="fas fa-user"></i> Account</h3>
+                <a href="{{ url_for('login') }}" class="sidebar-link">
+                    <i class="fas fa-sign-in-alt"></i> Login
+                </a>
+                <a href="{{ url_for('register') }}" class="sidebar-link">
+                    <i class="fas fa-user-plus"></i> Register
+                </a>
+            </div>
+            {% endif %}
+        </aside>
+
+        <!-- Main Content Area -->
+        <div class="app-container">
+            <div class="main-content-wrapper" id="mainContent">
+                <!-- Flash Messages -->
+                <div class="flash-messages">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }}">
+                                    {{ message }}
+                                    <button class="alert-close" onclick="this.parentElement.remove()">&times;</button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+                </div>
+
+                <!-- Main Content -->
+                <main class="main-content">
+                    {% block content %}
+                    <!-- Default content will be overridden by child templates -->
+                    {% endblock %}
+                </main>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3><i class="fas fa-leaf"></i> ALIMAQ</h3>
+                    <p>Your trusted source for premium quality herbs, spices, and wellness products.</p>
+                    <div class="footer-social">
+                        <a href="#" class="social-link" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" class="social-link" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="social-link" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="social-link" aria-label="WhatsApp"><i class="fab fa-whatsapp"></i></a>
+                    </div>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Quick Links</h4>
+                    <a href="{{ url_for('index') }}"><i class="fas fa-chevron-right"></i> Home</a>
+                    <a href="#"><i class="fas fa-chevron-right"></i> About Us</a>
+                    <a href="#"><i class="fas fa-chevron-right"></i> Contact</a>
+                    <a href="{{ url_for('sell') }}"><i class="fas fa-chevron-right"></i> Sell With Us</a>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Contact Info</h4>
+                    <div class="contact-info">
+                        <div class="contact-item">
+                            <i class="fas fa-envelope"></i>
+                            <span>mugambiallan7@gmail.com</span>
+                        </div>
+                        <div class="contact-item">
+                            <i class="fas fa-phone"></i>
+                            <span>0717615998</span>
+                        </div>
+                        <div class="contact-item">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <span>Nairobi, Kenya</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p>&copy; 2024 ALIMAQ Herbs & Spices Store. All rights reserved.</p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        // Simple and clean JavaScript functions
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('mainContent');
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            
+            if (sidebar && mainContent && sidebarToggle) {
+                sidebar.classList.toggle('sidebar-hidden');
+                mainContent.classList.toggle('full-width');
+                
+                const icon = sidebarToggle.querySelector('i');
+                if (sidebar.classList.contains('sidebar-hidden')) {
+                    icon.className = 'fas fa-bars';
+                    sidebarToggle.title = 'Show Sidebar';
+                } else {
+                    icon.className = 'fas fa-times';
+                    sidebarToggle.title = 'Hide Sidebar';
+                }
+            }
+        }
+
+        function toggleMobileSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar) {
+                sidebar.classList.toggle('mobile-open');
+            }
+        }
+
+        function toggleDarkMode() {
+            fetch('{{ url_for("toggle_dark_mode") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const themeIcons = document.querySelectorAll('.theme-icon');
+                    const themeTexts = document.querySelectorAll('.theme-text');
+                    
+                    themeIcons.forEach(icon => {
+                        icon.className = data.dark_mode ? 'fas fa-sun theme-icon' : 'fas fa-moon theme-icon';
+                    });
+                    
+                    themeTexts.forEach(text => {
+                        text.textContent = data.dark_mode ? 'Light' : 'Dark';
+                    });
+                    
+                    document.documentElement.setAttribute('data-theme', data.dark_mode ? 'dark' : 'light');
+                }
+            })
+            .catch(error => {
+                console.error('Error toggling dark mode:', error);
+            });
+        }
+
+        function updateCartCount() {
+            {% if current_user.is_authenticated %}
+            fetch('{{ url_for("api_cart_count") }}')
+                .then(response => response.json())
+                .then(data => {
+                    const cartCounts = document.querySelectorAll('.cart-count');
+                    cartCounts.forEach(count => {
+                        count.textContent = data.count || 0;
+                    });
+                })
+                .catch(error => console.error('Error updating cart count:', error));
+            {% endif %}
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            if (sidebarToggle) {
+                sidebarToggle.addEventListener('click', toggleSidebar);
+            }
+
+            const mobileNavToggle = document.getElementById('mobileNavToggle');
+            if (mobileNavToggle) {
+                mobileNavToggle.addEventListener('click', toggleMobileSidebar);
+            }
+
+            updateCartCount();
+
+            // Add close functionality to flash messages
+            document.querySelectorAll('.alert-close').forEach(button => {
+                button.addEventListener('click', function() {
+                    this.parentElement.remove();
+                });
+            });
+        });
+
+        // Make functions globally available
+        window.toggleSidebar = toggleSidebar;
+        window.toggleMobileSidebar = toggleMobileSidebar;
+        window.toggleDarkMode = toggleDarkMode;
+        window.updateCartCount = updateCartCount;
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

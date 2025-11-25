@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}Sell Products - Herbs & Spices Store{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>Sell Your Products</h1>
+    <p>List your herbs and spices on our platform</p>
+    
+    <div class="sell-form-container">
+        <form method="POST" class="sell-form">
+            <div class="form-group">
+                <label for="name">Product Name</label>
+                <input type="text" id="name" name="name" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="description">Description</label>
+                <textarea id="description" name="description" rows="4" required></textarea>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="price">Price (KSh)</label>
+                    <input type="number" id="price" name="price" step="0.01" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="stock">Stock Quantity</label>
+                    <input type="number" id="stock" name="stock" required>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="category">Category</label>
+                <select id="category" name="category" required>
+                    <option value="">Select a category</option>
+                    {% for category in categories %}
+                    <option value="{{ category }}">{{ category }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <button type="submit" class="btn btn-primary">
+                List Product
+            </button>
+        </form>
+    </div>
+</div>
+
+<style>
+.sell-form-container {
+    max-width: 600px;
+    margin: 30px auto;
+}
+
+.sell-form {
+    background: var(--card-bg);
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    background: var(--background);
+    color: var(--text-primary);
+    font-size: 16px;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+@media (max-width: 768px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .sell-form {
+        padding: 20px;
+    }
+}
+</style>
+{% endblock %}

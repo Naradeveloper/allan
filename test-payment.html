@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test M-Pesa Payment - Herbs & Spices Store</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            max-width: 500px; 
+            margin: 50px auto; 
+            padding: 20px; 
+            background-color: #f8f9fa;
+        }
+        .form-group { 
+            margin-bottom: 15px; 
+        }
+        label { 
+            display: block; 
+            margin-bottom: 5px; 
+            font-weight: bold; 
+        }
+        input { 
+            width: 100%; 
+            padding: 10px; 
+            border: 1px solid #ddd; 
+            border-radius: 4px; 
+            box-sizing: border-box;
+        }
+        button { 
+            background: #28a745; 
+            color: white; 
+            padding: 12px 24px; 
+            border: none; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            width: 100%; 
+            font-size: 16px;
+        }
+        button:hover {
+            background: #218838;
+        }
+        .result { 
+            margin-top: 20px; 
+            padding: 15px; 
+            border-radius: 4px; 
+        }
+        .success { 
+            background: #d4edda; 
+            color: #155724; 
+            border: 1px solid #c3e6cb;
+        }
+        .error { 
+            background: #f8d7da; 
+            color: #721c24; 
+            border: 1px solid #f5c6cb;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 2s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .instructions {
+            margin-top: 30px;
+            padding: 15px;
+            background: #e9ecef;
+            border-radius: 5px;
+        }
+        .instructions h3 {
+            margin-top: 0;
+            color: #495057;
+        }
+        .instructions ul {
+            margin-bottom: 0;
+            padding-left: 20px;
+        }
+        .instructions li {
+            margin-bottom: 5px;
+            color: #495057;
+        }
+        .small-text {
+            color: #666;
+            font-size: 0.875em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Test M-Pesa Payment</h2>
+        <form id="paymentForm" aria-label="M-Pesa Payment Test Form">
+            <div class="form-group">
+                <label for="phone">Phone Number:</label>
+                <input type="tel" id="phone" name="phone" value="254717615998" placeholder="Enter phone number" required aria-required="true">
+                <span class="small-text">Use test number: 254717615998</span>
+            </div>
+            <div class="form-group">
+                <label for="amount">Amount (KES):</label>
+                <input type="number" id="amount" name="amount" value="1" min="1" placeholder="Enter amount" required aria-required="true">
+                <span class="small-text">Minimum amount: 1 KES</span>
+            </div>
+            <div class="form-group">
+                <label for="orderId">Order ID:</label>
+                <input type="text" id="orderId" name="orderId" value="TEST001" placeholder="Enter order ID" required aria-required="true">
+            </div>
+            <div class="form-group">
+                <label for="description">Description:</label>
+                <input type="text" id="description" name="description" value="Test Payment" placeholder="Enter payment description">
+            </div>
+            <button type="submit" aria-label="Process M-Pesa Payment">Process Payment</button>
+        </form>
+
+        <div class="loading" id="loading" aria-live="polite" aria-atomic="true">
+            <div class="spinner" aria-hidden="true"></div>
+            <p>Processing payment... Please wait</p>
+        </div>
+
+        <div id="result" class="result" aria-live="polite" aria-atomic="true"></div>
+
+        <div class="instructions">
+            <h3>Test Instructions:</h3>
+            <ul>
+                <li><strong>Phone Number:</strong> 254708374149 (Test number)</li>
+                <li><strong>Amount:</strong> 1 KES (Minimum test amount)</li>
+                <li><strong>M-Pesa PIN:</strong> 174379 (Test PIN)</li>
+                <li>Click "Process Payment" and check your phone for M-Pesa prompt</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('paymentForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const phone = document.getElementById('phone').value;
+            const amount = document.getElementById('amount').value;
+            const orderId = document.getElementById('orderId').value;
+            const description = document.getElementById('description').value;
+            
+            // Show loading
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('result').innerHTML = '';
+            document.getElementById('result').className = 'result';
+            
+            try {
+                const response = await fetch('/api/mpesa/payment', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        phone_number: phone,
+                        amount: amount,
+                        order_id: orderId,
+                        description: description
+                    })
+                });
+                
+                const result = await response.json();
+                
+                document.getElementById('loading').style.display = 'none';
+                
+                if (result.success) {
+                    document.getElementById('result').className = 'result success';
+                    document.getElementById('result').innerHTML = `
+                        <h3>✅ Payment Initiated Successfully!</h3>
+                        <p><strong>Message:</strong> ${result.customer_message}</p>
+                        <p><strong>Checkout ID:</strong> ${result.checkout_request_id}</p>
+                        <p><strong>Merchant ID:</strong> ${result.merchant_request_id}</p>
+                        <p>📱 <strong>Check your phone to complete the payment.</strong></p>
+                        <p>🔑 <strong>Use PIN:</strong> 174379</p>
+                    `;
+                    
+                    // Start polling for status
+                    pollPaymentStatus(result.checkout_request_id);
+                } else {
+                    document.getElementById('result').className = 'result error';
+                    document.getElementById('result').innerHTML = `
+                        <h3>❌ Payment Failed</h3>
+                        <p><strong>Error:</strong> ${result.error}</p>
+                        <p><strong>Response Code:</strong> ${result.response_code || 'N/A'}</p>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('result').className = 'result error';
+                document.getElementById('result').innerHTML = `
+                    <h3>❌ Network Error</h3>
+                    <p>Please check your connection and try again.</p>
+                    <p><strong>Error details:</strong> ${error.message}</p>
+                `;
+            }
+        });
+        
+        async function pollPaymentStatus(checkoutRequestId) {
+            let attempts = 0;
+            const maxAttempts = 20;
+            
+            const checkStatus = async () => {
+                attempts++;
+                
+                try {
+                    const response = await fetch(`/api/mpesa/transaction/${checkoutRequestId}`);
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        const transaction = result.transaction;
+                        
+                        if (transaction.status === 'completed') {
+                            document.getElementById('result').innerHTML += `
+                                <div class="success" style="margin-top: 15px; padding: 10px; border-radius: 4px;">
+                                    <h4>🎉 Payment Completed Successfully!</h4>
+                                    <p><strong>Receipt Number:</strong> ${transaction.mpesa_receipt_number}</p>
+                                    <p><strong>Amount:</strong> KES ${transaction.amount}</p>
+                                    <p><strong>Phone:</strong> ${transaction.phone_number}</p>
+                                    <p><strong>Transaction Date:</strong> ${new Date(transaction.transaction_date).toLocaleString()}</p>
+                                </div>
+                            `;
+                            return;
+                        } else if (transaction.status === 'failed') {
+                            document.getElementById('result').innerHTML += `
+                                <div class="error" style="margin-top: 15px; padding: 10px; border-radius: 4px;">
+                                    <h4>❌ Payment Failed</h4>
+                                    <p>Please try the payment again.</p>
+                                </div>
+                            `;
+                            return;
+                        }
+                    }
+                    
+                    // Continue polling if still pending
+                    if (attempts < maxAttempts) {
+                        setTimeout(checkStatus, 5000);
+                    } else {
+                        document.getElementById('result').innerHTML += `
+                            <div style="margin-top: 15px; padding: 10px; background: #fff3cd; border-radius: 4px; color: #856404;">
+                                <h4>⏰ Payment Timeout</h4>
+                                <p>Please check your phone and try again if needed.</p>
+                            </div>
+                        `;
+                    }
+                } catch (error) {
+                    console.error('Status check error:', error);
+                    if (attempts < maxAttempts) {
+                        setTimeout(checkStatus, 5000);
+                    }
+                }
+            };
+            
+            setTimeout(checkStatus, 5000);
+        }
+    </script>
+</body>
+</html>

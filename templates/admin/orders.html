@@ -1,0 +1,365 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Orders - Admin Panel{% endblock %}
+{% block page_title %}Order Management{% endblock %}
+
+{% block admin_content %}
+<div class="data-table">
+    <div class="table-header">
+        <h3>All Orders</h3>
+        <div class="table-actions">
+            <input type="text" placeholder="Search orders..." class="search-input">
+            <button class="btn btn-primary">Export Orders</button>
+        </div>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>Order ID</th>
+                <th>Customer</th>
+                <th>Amount</th>
+                <th>Items</th>
+                <th>Status</th>
+                <th>Date</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for order in orders %}
+            <tr>
+                <td>#{{ order.id }}</td>
+                <td>
+                    {% if order.user and order.user.name %}
+                        {{ order.user.name }}
+                    {% else %}
+                        Guest Customer
+                    {% endif %}
+                </td>
+                <td>KSh {{ "%.2f"|format(order.total_amount) if order.total_amount else "0.00" }}</td>
+                <td>
+                    {% if order.order_items %}
+                        {% if order.order_items is iterable and order.order_items is not string %}
+                            {{ order.order_items|length }} items
+                        {% else %}
+                            {% if order.order_items is string %}
+                                {# Try to parse JSON string #}
+                                {% set items = order.order_items %}
+                                {% set item_count = items.count('"product_name"') if '"product_name"' in items else 1 %}
+                            {% else %}
+                                {% set item_count = 1 %}
+                            {% endif %}
+                            {{ item_count }} items
+                        {% endif %}
+                    {% else %}
+                        0 items
+                    {% endif %}
+                </td>
+                <td>
+                    <span class="status-badge 
+                        {% if order.status == 'delivered' or order.status == 'completed' %}status-active
+                        {% elif order.status == 'processing' or order.status == 'shipped' %}status-warning
+                        {% else %}status-pending{% endif %}">
+                        {{ order.status|title if order.status else 'Pending' }}
+                    </span>
+                </td>
+                <td>
+                    {% if order.created_at %}
+                        {{ order.created_at.strftime('%Y-%m-%d %H:%M') }}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="action-buttons">
+                        <a href="{{ url_for('order_confirmation', order_id=order.id) if order.id else '#' }}" class="btn-icon" title="View Details" target="_blank">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                    <div class="status-dropdown">
+                        <button class="btn-icon" title="Change Status" type="button">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                        <div class="dropdown-menu">
+                            <a href="#" class="dropdown-item" onclick="updateOrderStatus({{ order.id }}, 'pending')">Mark as Pending</a>
+                            <a href="#" class="dropdown-item" onclick="updateOrderStatus({{ order.id }}, 'processing')">Mark as Processing</a>
+                            <a href="#" class="dropdown-item" onclick="updateOrderStatus({{ order.id }}, 'shipped')">Mark as Shipped</a>
+                            <a href="#" class="dropdown-item" onclick="updateOrderStatus({{ order.id }}, 'delivered')">Mark as Delivered</a>
+                            <a href="#" class="dropdown-item" onclick="updateOrderStatus({{ order.id }}, 'cancelled')">Mark as Cancelled</a>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="7" class="empty-state">
+                    <i class="fas fa-shopping-cart" class="empty-state-icon"></i>
+                    <h4 class="empty-state-title">No Orders Yet</h4>
+                    <p class="empty-state-message">Orders will appear here once customers start placing them.</p>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<style>
+.status-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.status-dropdown .dropdown-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: white;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    border-radius: 8px;
+    min-width: 180px;
+    display: none;
+    z-index: 100;
+    border: 1px solid #e2e8f0;
+}
+
+.status-dropdown:hover .dropdown-menu {
+    display: block;
+}
+
+.status-dropdown .dropdown-item {
+    display: block;
+    padding: 12px 16px;
+    color: #1e293b;
+    text-decoration: none;
+    border-bottom: 1px solid #e2e8f0;
+    transition: all 0.2s ease;
+    font-size: 14px;
+}
+
+.status-dropdown .dropdown-item:last-child {
+    border-bottom: none;
+}
+
+.status-dropdown .dropdown-item:hover {
+    background: #f8fafc;
+    color: #10b981;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.status-active {
+    background: #f0fdf4;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+}
+
+.status-warning {
+    background: #fffbeb;
+    color: #92400e;
+    border: 1px solid #fde68a;
+}
+
+.status-pending {
+    background: #eff6ff;
+    color: #1e40af;
+    border: 1px solid #bfdbfe;
+}
+
+.data-table {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+    margin-bottom: 30px;
+}
+
+.table-header {
+    padding: 20px;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.table-header h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0;
+}
+
+.table-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.search-input {
+    padding: 8px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    min-width: 200px;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 14px;
+}
+
+.btn-primary {
+    background: #10b981;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #059669;
+}
+
+.btn-icon {
+    background: none;
+    border: none;
+    color: #64748b;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    font-size: 14px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-icon:hover {
+    background: #f8fafc;
+    color: #10b981;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 4px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th {
+    background: #f8fafc;
+    padding: 15px 20px;
+    text-align: left;
+    font-weight: 600;
+    color: #475569;
+    border-bottom: 1px solid #e2e8f0;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+td {
+    padding: 15px 20px;
+    border-bottom: 1px solid #e2e8f0;
+    color: #475569;
+}
+
+tr:last-child td {
+    border-bottom: none;
+}
+
+tr:hover td {
+    background: #f8fafc;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px;
+}
+
+.empty-state-icon {
+    font-size: 48px;
+    color: #ccc;
+    margin-bottom: 16px;
+}
+
+.empty-state-title {
+    color: #666;
+    margin-bottom: 8px;
+}
+
+.empty-state-message {
+    color: #999;
+}
+</style>
+
+<script>
+function updateOrderStatus(orderId, status) {
+    if (confirm(`Are you sure you want to mark order #${orderId} as ${status}?`)) {
+        fetch(`/admin/update-order-status/${orderId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ status: status })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while updating the order status.');
+        });
+    }
+}
+
+// Search functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.querySelector('.search-input');
+    if (searchInput) {
+        searchInput.addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const rows = document.querySelectorAll('tbody tr');
+            
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                if (text.includes(searchTerm)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+    }
+});
+</script>
+{% endblock %}
